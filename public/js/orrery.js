@@ -127,7 +127,7 @@ class OrreryView {
     }
 
 
-    // returns the most distant orbiting body
+    // returns the most distant orbiting body - of immediate children only
     mostDistantOrbitingBody(body) {
         let mostDistant = 0;
         let mostDistantBody = body;
@@ -143,7 +143,7 @@ class OrreryView {
     }
 
 
-    // returns the sum of the diameters of all orbiting bodies - immediate children only
+    // returns the sum of the diameters of all orbiting bodies
     sumOfOrbitingBodiesDiameters(body) {
         let sum = 0;
         const orbitingBodies = body.orbitingBodies;
