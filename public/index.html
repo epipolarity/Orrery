@@ -1,9 +1,18 @@
 <!DOCTYPE html>
-<html>
+<html lang="en">
 <head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>Welcome to My App</title>
+  <link rel="stylesheet" type="text/css" href="css/styles.css">
 </head>
 <body>
-  <h1>Hello, world!</h1>
+  <div id="app">
+    <h1>Orrery</h1>
+    <canvas id="canvas"></canvas>
+    <!-- the slider below will control the simulation speed -->
+    <input type="range" id="speed" min="0" max="500" step="1" value="0">
+  </div>
+  <script type="module" src="js/orrery.js"></script>
 </body>
 </html>

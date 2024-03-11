@@ -1,0 +1,19 @@
+html {
+    background-color: #111111;
+    color: white;
+    font-family: 'Arial', sans-serif;
+}
+
+#app {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+}
+
+#canvas {
+    background-color: black;
+}
+
+#speed {
+    width: 400px;
+}
