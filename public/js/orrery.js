@@ -1,3 +1,6 @@
+// Code for the Orrery project
+
+// Model
 class CelestialBodyModel {
 
     constructor({ name, distance, radius, angle = 0, color }) {
@@ -10,28 +13,144 @@ class CelestialBodyModel {
         this.orbitingBodies = [];
     }
 
+
+    // add a body to orbit around this body
     addOrbitingBody(body) {
         body.parent = this;
         this.orbitingBodies.push(body);
     }
 
+
+    // update the angle of the body and its orbiting bodies
     update(deltaTime, speedFactor) {
         if (this.parent) {
-            this.angle += (Math.PI / this.period) * deltaTime * speedFactor;
+            this.angle += (Math.PI / this.period) * (deltaTime / 1000) * speedFactor;
         }
         this.orbitingBodies.forEach(planet => planet.update(deltaTime, speedFactor));
     }
 
-    spaceNeeded() {
-        return this.radius + this.sumOfOrbitingBodiesDiameters();
+}
+
+
+// View
+class OrreryView {
+
+    constructor(canvas, model) {
+        this.canvas = canvas;
+        this.ctx = canvas.getContext('2d');
+        this.speedControl = document.getElementById('speed');
+        this.model = model;
+        this.distanceScale = 1;
+
+        // Create speed control slider
+        this.speedControl = document.createElement('input');
+        this.speedControl.type = 'range';
+        this.speedControl.min = '0';
+        this.speedControl.max = '500';
+        this.speedControl.step = '1';
+        this.speedControl.value = '0';
+        this.speedControl.id = 'speed';
+        document.body.appendChild(this.speedControl);
+
+        // Set initial canvas size and handle resizing
+        this.resizeCanvas();
+        window.addEventListener('resize', () => this.resizeCanvas());
     }
 
-    sumOfOrbitingBodiesDiameters() {
+    resizeCanvas() {
+        this.canvas.width = window.innerWidth;
+        this.canvas.height = window.innerHeight;
+        this.draw();
+    }
+
+
+    // clear the canvas and draw the model
+    draw() {
+        this.ctx.clearRect(0, 0, this.canvas.width, this.canvas.height);
+        const centerX = this.canvas.width / 2;
+        const centerY = this.canvas.height / 2;
+        const mostDistant = this.mostDistantOrbitingBody(this.model);
+        this.distanceScale = Math.min(centerX, centerY) / (mostDistant.distance + mostDistant.radius);
+        this.drawBody(this.model, centerX, centerY);
+    }
+
+
+    // returns the speed factor based on the speed control slider
+    getSpeedFactor() {
+        return Math.pow(parseInt(this.speedControl.value), 1.75);
+    }
+
+
+    // recursively draw the body and its orbiting bodies
+    drawBody(body, originX, originY) {
+
+        const bodies = this.getOrbitingBodiesInDistanceOrder(body);
+        let distance = 0;
+
+        this.ctx.save();
+        this.ctx.translate(originX, originY);
+        this.ctx.beginPath();
+        this.ctx.arc(0, 0, body.radius * this.distanceScale, 0, Math.PI * 2);    // body
+        this.ctx.fillStyle = body.color;
+        this.ctx.fill();
+
+        for (let i = 0; i < bodies.length; i++) {
+            const body = bodies[i];
+            distance = body.distance;
+            this.ctx.beginPath();
+            this.ctx.arc(0, 0, distance * this.distanceScale, 0, Math.PI * 2);   // orbit
+            this.ctx.strokeStyle = 'rgba(0,0,0,1.0)';
+            this.ctx.stroke();
+            this.ctx.beginPath();
+            this.ctx.arc(0, 0, distance * this.distanceScale, 0, Math.PI * 2);   // orbit
+            this.ctx.strokeStyle = 'rgba(255, 255, 255, 0.1)';
+            this.ctx.stroke();
+            this.ctx.save();
+            this.ctx.rotate(body.angle);
+            this.ctx.translate(distance * this.distanceScale, 0);
+            this.drawBody(body, 0, 0);
+            this.ctx.restore();
+        }
+
+        this.ctx.restore();
+    }
+
+    // returns the orbiting bodies in distance order
+    getOrbitingBodiesInDistanceOrder(body) {
+        return body.orbitingBodies.sort((a, b) => a.distance - b.distance);
+    }
+
+
+    // returns the amount of space needed to display the orbiting bodies
+    spaceNeeded(body) {
+        return 2 * (body.radius + this.sumOfOrbitingBodiesDiameters(body));
+    }
+
+
+    // returns the most distant orbiting body
+    mostDistantOrbitingBody(body) {
+        let mostDistant = 0;
+        let mostDistantBody = body;
+        const orbitingBodies = body.orbitingBodies;
+        for (let i = 0; i < orbitingBodies.length; i++) {
+            const distance = orbitingBodies[i].distance;
+            if (distance > mostDistant) {
+                mostDistant = distance;
+                mostDistantBody = orbitingBodies[i];
+            }
+        }
+        return mostDistantBody;
+    }
+
+
+    // returns the sum of the diameters of all orbiting bodies - immediate children only
+    sumOfOrbitingBodiesDiameters(body) {
         let sum = 0;
-        for (let i = 0; i < this.orbitingBodies.length; i++) {
-            sum += this.orbitingBodies[i].radius * 2;
-            if (this.orbitingBodies[i].orbitingBodies.length > 0) {
-                sum += this.orbitingBodies[i].sumOfOrbitingBodiesDiameters();
+        const orbitingBodies = body.orbitingBodies;
+        for (let i = 0; i < orbitingBodies.length; i++) {
+            sum += orbitingBodies[i].radius * 2;
+            if (orbitingBodies[i].orbitingBodies.length > 0) {
+                sum += sumOfOrbitingBodiesDiameters(orbitingBodies[i]);
             }
         }
         return sum;
@@ -39,66 +158,8 @@ class CelestialBodyModel {
 
 }
 
-class OrreryView {
 
-    constructor(canvas, model) {
-        this.canvas = canvas;
-        this.canvas.width = 400;
-        this.canvas.height = 400;
-        this.ctx = canvas.getContext('2d');
-        this.speedControl = document.getElementById('speed');
-        this.model = model;
-    }
-
-    draw() {
-        this.ctx.clearRect(0, 0, this.canvas.width, this.canvas.height);
-        const centerX = this.canvas.width / 2;
-        const centerY = this.canvas.height / 2;
-        this.drawBody(this.model, centerX, centerY, Math.min(centerX, centerY));
-    }
-
-    getSpeedFactor() {
-        return Math.pow(parseInt(this.speedControl.value), 1.75);
-    }
-
-    drawBody(body, originX, originY) {
-
-        const bodies = this.getOrbitingBodiesInDistanceOrder(body);
-        let distance = body.radius;
-
-        this.ctx.save();
-        this.ctx.translate(originX, originY);
-        this.ctx.beginPath();
-        this.ctx.arc(0, 0, body.radius, 0, Math.PI * 2);    // body
-        this.ctx.fillStyle = body.color;
-        this.ctx.fill();
-
-        for (let i = 0; i < bodies.length; i++) {
-            const body = bodies[i];
-            distance += body.spaceNeeded();
-            this.ctx.beginPath();
-            this.ctx.arc(0, 0, distance, 0, Math.PI * 2);   // orbit
-            this.ctx.strokeStyle = 'rgba(255, 255, 255, 0.1)';    
-            this.ctx.stroke();
-            this.ctx.save();
-            this.ctx.rotate(body.angle);
-            this.ctx.translate(distance, 0);
-            this.drawBody(body, 0, 0);
-            this.ctx.restore();
-            distance += body.spaceNeeded();
-        }
-
-        this.ctx.restore();
-    }
-
-
-    getOrbitingBodiesInDistanceOrder(body) {
-        return body.orbitingBodies.sort((a, b) => a.distance - b.distance);
-    }
-
-}
-
-
+// Controller
 class OrreryController {
 
     constructor(view, model) {
@@ -108,13 +169,13 @@ class OrreryController {
         this.lastTimeStamp = 0;
     }
 
+    // update the model and view
     update(timeStamp) {
         const speedFactor = this.view.getSpeedFactor();
         if (speedFactor > 0 || !this.drawnOnce) {   // if speedFactor is 0, don't update the model unless it hasn't been drawn yet
-            const deltaTime = this.drawnOnce ? (timeStamp - this.lastTimeStamp) / 1000 : 0;     // deltaTime is 0 if it hasn't been drawn yet else it's the time since the last frame
+            const deltaTime = this.drawnOnce ? (timeStamp - this.lastTimeStamp) : 0;     // deltaTime is 0 if it hasn't been drawn yet else it's the time since the last frame
             this.model.update(deltaTime, speedFactor);
             this.view.draw();
-            console.log(speedFactor);
             this.drawnOnce = true;
         }
         this.lastTimeStamp = timeStamp;
